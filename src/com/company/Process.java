@@ -2,6 +2,7 @@ package com.company;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -11,6 +12,18 @@ public class Process implements Serializable, Comparable<Process>{
     private static final AtomicLong atomicRefId = new AtomicLong();
 
     private transient long refID;
+
+    private final String pId;
+    private Priority priority;
+    private Timestamp creationTimestamp;
+    private String processName;
+
+    /* For the moment the properties of a process do not include the instance of a given process but this
+    could be here extended with one like this:
+    private java.lang.Process instanceProcess;
+    This would be initialized at creation time when adding a new process.
+     */
+
 
     public void ObjBase() {
         refID = atomicRefId.incrementAndGet();
@@ -22,10 +35,7 @@ public class Process implements Serializable, Comparable<Process>{
 
     public long getrefID() {
         return refID;
-    };
-    private String pId;
-    private Priority priority;
-    private Timestamp creationTimestamp;
+    }
 
     // An array of 64+2 digits
     private final static char[] DIGITS66 = {
@@ -53,14 +63,17 @@ public class Process implements Serializable, Comparable<Process>{
 //        return DigestUtils.sha1Hex(ts + rand);
 
         UUID u = UUID.randomUUID();
+        // Implemented this for simpler and shorter ids for the processes.
         return toIDString(u.getMostSignificantBits() + u.getLeastSignificantBits());
 
     }
 
-    public Process(String priority, Timestamp timestamp) {
+    public Process(String processname, String priority, Timestamp timestamp) {
 
         refID = atomicRefId.incrementAndGet();
         pId = createSalt();
+        // For the moment only store the name, this could be the name of the process to spawn.
+        processName = processname;
         setPriority(priority);
         this.creationTimestamp = timestamp;
     }
@@ -94,7 +107,6 @@ public class Process implements Serializable, Comparable<Process>{
             default:
                 value = 3;
         }
-        //System.out.println("Pro value is: "+value);
         return value;
     }
 
@@ -107,16 +119,18 @@ public class Process implements Serializable, Comparable<Process>{
     }
     @Override
     public String toString() {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return "Process{" +
                 "pid='" + pId + '\'' +
+                ", name='" + processName + '\'' +
                 ", priority='" + priority + '\'' +
-                ", timestamp='" + creationTimestamp + '\'' +
+                ", timestamp='" + formatter.format(creationTimestamp) + '\'' +
                 '}';
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(pId, priority, creationTimestamp);
+        return Objects.hash(pId,processName,priority,creationTimestamp);
     }
     @Override
     public boolean equals(Object o) {
@@ -139,10 +153,8 @@ public class Process implements Serializable, Comparable<Process>{
         >0 - if this process's timestamp is higher than the passed timestamp's process.
          */
 
-        //System.out.println("Results of the compare");
-        //System.out.println("OBJ1: " + this.toString()+ "OBJ2: "+ proc.toString());
-        int iTimestamp = this.creationTimestamp.compareTo(proc.getCreationTimestamp());
-        /*
+        /* System.out.println("Results of the compare");
+        System.out.println("OBJ1: " + this.toString()+ "OBJ2: "+ proc.toString());
         System.out.println("1. Result compare timestamps: " + iTimestamp);
         int iPriority = this.priority.compareTo(proc.getPriority());
         System.out.println("2. Result compare priority: " + iPriority);
@@ -150,10 +162,17 @@ public class Process implements Serializable, Comparable<Process>{
         int iPID = this.pId.compareTo(proc.getpId());
         System.out.println("3. Result compare PID: " + iPID);
         */
+        int iTimestamp = this.creationTimestamp.compareTo(proc.getCreationTimestamp());
         int i=iTimestamp;
         return i;
 
-        //return 0;
     }
 
+    public String getProcessName() {
+        return processName;
+    }
+
+    public void setProcessName(String processName) {
+        this.processName = processName;
+    }
 }

@@ -12,8 +12,8 @@ public class Main {
         System.out.println("help: To display this text again.");
         System.out.println("quit: To stop the task manager.");
         System.out.println("ms:number      -> To define a maximum number of processes allowed.");
-        System.out.println("a:priority     -> To add a process enter the priority after the a. Valid priorities are: low,medium,high");
-        System.out.println("a:pid:priority -> To add a process enter with a specified pid and a priority. Valid priorities are: low,medium,high");
+        //System.out.println("a:priority     -> To add a process enter the priority after the a. Valid priorities are: low,medium,high");
+        System.out.println("a:name:priority-> To add a process enter the name and a priority. Valid priorities are: low,medium,high");
         System.out.println("prio           -> To use priority for adding a process.");
         System.out.println("noprio         -> To not use the priority for adding a process");
         System.out.println("k:pid          -> To kill a process with process id = pid.");
@@ -31,22 +31,24 @@ public class Main {
         int maxRunningProcesses = 4;
 
         String userInput;
-        String processID;
-        String processPriority;
         TaskManager myTaskManager = new TaskManager("MyTaskManager",new PriorityQueue<>(), maxRunningProcesses);
         myTaskManager.setAddingWithPriority(false);
 
         showHelp(myTaskManager.getName());
+        boolean finish=false;
         do {
             userInput = input.nextLine();
             switch (userInput)
             {
+                case "quit":
+                    finish = true;
+                    break;
                 case "help":
                     showHelp(myTaskManager.getName());
                     break;
                 case "ka":
                     System.out.println("Killing all processes.");
-                    System.out.println(myTaskManager.KillAllProcesses()==0?"All processes killed" : "Problem during killing of processes.");
+                    myTaskManager.KillAllProcesses();
                     myTaskManager.ListProcessesByCreation();
                     break;
                 case "lc":
@@ -86,13 +88,14 @@ public class Main {
                     String[] commands = userInput.split(":");
                     switch (commands[0]) {
                         case "a":
-                            if (commands.length == 2) {
-                                processPriority = commands[1];
-                                if (processPriority.length()>0) {
-                                    // Any priority not specified will be taken as low.
-                                    myTaskManager.AddProcess(processPriority);
-                                } else {
-                                    System.out.println("Invalid input. Priority cannot be null: " + userInput);
+                            if (commands.length == 3) {
+                                String processName = commands[1];
+                                String processPriority = commands[2];
+                                // Any priority not specified will be taken as low.
+                                if ((processPriority.length()>0)&&(!processName.isEmpty()||!processName.isBlank()))
+                                    myTaskManager.AddProcess(processName, processPriority);
+                                else {
+                                    System.out.println("Invalid input. Name nor priority can be a space or empty: " + userInput);
                                 }
                             } else {
                                 System.out.println("Invalid input: " + userInput);
@@ -100,7 +103,7 @@ public class Main {
                             break;
                         case "k":
                             if (commands.length == 2) {
-                                processID = commands[1];
+                                String processID = commands[1];
                                 if (processID.length()>0) {
                                     myTaskManager.KillProcess(processID);
                                 } else {
@@ -111,13 +114,14 @@ public class Main {
                             }
                             break;
                         case "ms":
-                            int i = maxRunningProcesses;
+                            int i=0;
+                            int j = maxRunningProcesses;
                             if (commands.length == 2) {
                                 try {
                                     i = Integer.parseInt(commands[1]);
                                 } catch (Exception e) {
-                                    System.out.println("Invalid number of running processes: " + userInput);
-                                    System.out.println("Using default value: " + i);
+                                    System.out.println("Not valid number for running processes: " + userInput);
+                                    System.out.println("Using default value: " + j);
                                 }
                                 myTaskManager.setMaxProcessRunning(i);
                             } else {
@@ -125,10 +129,14 @@ public class Main {
                             }
                             break;
                         default:
+                            System.out.println("Unknown command: "+ userInput);
                     }
             }
-
-        } while (!userInput.equalsIgnoreCase("quit"));
+            if (!finish) {
+                System.out.println();
+                System.out.println("Waiting for next command");
+            }
+        } while (!finish);
 
         System.out.println("=======THE END ========");
 

@@ -2,7 +2,6 @@ package com.company;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class TaskManager implements Serializable {
@@ -57,10 +56,22 @@ public class TaskManager implements Serializable {
                 '}';
     }
 
-    public int KillAllProcesses() {
+    public void KillAllProcesses() {
+        try {
+            if (!process_Queue.isEmpty()) {
+                process_Queue.clear();
+            }
+        } catch (Exception e) {
+            System.out.println("Could not kill the processes.");
+        }
+    }
+
+    public int KillAllProcesses1() {
         int result = 0;
         try {
-            process_Queue.clear();
+            if (!process_Queue.isEmpty()) {
+                process_Queue.clear();
+            }
         } catch (Exception e) {
             result = 1;
         }
@@ -80,61 +91,64 @@ public class TaskManager implements Serializable {
     }
 
      public void ListProcessesByPriority() {
-         ArrayList<Process> theProcessArrayList;
-         theProcessArrayList = getArrayListFromQueue(process_Queue);
+        if (!process_Queue.isEmpty()) {
+            ArrayList<Process> theProcessArrayList;
+            theProcessArrayList = getArrayListFromQueue(process_Queue);
 
-         theProcessArrayList.sort(new Comparator<Process>() {
-             // Compare function based on the priority ordering from high to low, since low < medium < high.
-             public int compare(Process p1, Process p2) {
-                 return p1.getValueFromPrio()-p2.getValueFromPrio();
-             }
-         });
-         for (Process theProcess : theProcessArrayList) {
-             System.out.println(theProcess.toString());
-         }
+            theProcessArrayList.sort(new Comparator<Process>() {
+                // Compare function based on the priority ordering from high to low, since low < medium < high.
+                public int compare(Process p1, Process p2) {
+                    return p1.getValueFromPrio()-p2.getValueFromPrio();
+                }
+            });
+            for (Process theProcess : theProcessArrayList) System.out.println(theProcess.toString());
+        } else {
+            System.out.println("No process running.");
+        }
     }
 
     public void ListProcessesByPID() {
-        ArrayList<Process> theProcessArrayList;
-        theProcessArrayList = getArrayListFromQueue(process_Queue);
+        if (!process_Queue.isEmpty()) {
+            ArrayList<Process> theProcessArrayList;
+            theProcessArrayList = getArrayListFromQueue(process_Queue);
 
-        theProcessArrayList.sort(new Comparator<Process>() {
-            // Compare function based on an alphanumeric order of the processes identificator.
-            public int compare(Process p1, Process p2) {
-                return p1.getpId().compareTo(p2.getpId());
-            }
-        });
-        for (Process theProcess : theProcessArrayList) {
-            System.out.println(theProcess.toString());
+            theProcessArrayList.sort(new Comparator<Process>() {
+                // Compare function based on an alphanumeric order of the processes identification.
+                public int compare(Process p1, Process p2) {
+                    return p1.getpId().compareTo(p2.getpId());
+                }
+            });
+            for (Process theProcess : theProcessArrayList) System.out.println(theProcess.toString());
+        } else {
+            System.out.println("No process running.");
         }
     }
 
     public void ListProcessesByCreation() {
         // List all processes by creation time.
 
-        if (process_Queue.isEmpty()) {
-            System.out.println("No current process running");
-        } else {
+        if (!process_Queue.isEmpty()) {
             ArrayList<Process> theProcessArrayList;
             theProcessArrayList = getArrayListFromQueue(process_Queue);
             for (Process theProcess : theProcessArrayList) {
                 System.out.println(theProcess.toString());
             }
+        } else {
+            System.out.println("No process running.");
         }
     }
 
     private Timestamp getTimestamp() {
         Date date = new Date();
-        Timestamp ts=new Timestamp(date.getTime());
-        return ts;
+        return new Timestamp(date.getTime());
     }
-    public void AddProcess(String priority) {
+    public void AddProcess(String processName, String priority) {
         //Add a process
 
         int currProcessesRunning = process_Queue.size();
         Timestamp ts=getTimestamp();
         //System.out.println("Number of processes running: " + currProcessesRunning);
-        Process newProcess = new Process(priority,ts);
+        Process newProcess = new Process(processName,priority,ts);
 
         if (currProcessesRunning==this.getMaxProcessRunning()) {
             if (isAddingWithPriority()) {
@@ -150,11 +164,8 @@ public class TaskManager implements Serializable {
             } else
                 System.out.println("Limit of running processes reached: "+ this.getMaxProcessRunning());
         } else {
-            //Process newProcess = new Process(priority,ts);
-
             process_Queue.add(newProcess);
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            System.out.println("Added new process. PID="+newProcess.getpId()+" PRIO=" + priority + " TIMESTAMP: " + formatter.format(ts) );
+            System.out.println("Just added -->"+ newProcess.toString());
         }
         System.out.println("Number of processes running: " + process_Queue.size());
     }
@@ -173,9 +184,8 @@ public class TaskManager implements Serializable {
                         }
                 });
 
-            System.out.println("-List by priority--"+ theListOfProcesses);
+            //System.out.println("-List by priority--"+ theListOfProcesses);
 
-            Timestamp ts = getTimestamp();
             int a=0;
             int b=0;
             int i=theListOfProcesses.size();
@@ -186,7 +196,7 @@ public class TaskManager implements Serializable {
                 a = p.getPriority().getValueFromName(priority);
                 b = p.getValueFromPrio();
                 if ((a < b) || (i == 0)) {
-                    // Form a new array only with the left elements to select the one that shall be removed.
+                    // Form a new array only with the processes with lower priority to select the one that shall be removed.
                     if ((a - b == -2) && (i != 0)) {
                         tempProcsList.add(p);
                     }
@@ -198,26 +208,22 @@ public class TaskManager implements Serializable {
             Collections.sort(tempProcsList,new Comparator<Process>() {
                 // Compare function based on the priority ordering from high to low, since low < medium < high.
                 public int compare(Process p1, Process p2) {
-                    System.out.println("PID: "+ p1.getpId().substring(0,5) +"p1 Prio val:"+p1.getValueFromPrio()+ " PID: "+ p2.getpId().substring(0,5) +"p2 Prio val:"+ p2.getValueFromPrio());
+                    //System.out.println("PID: "+ p1.getpId().substring(0,5) +"p1 Prio val:"+p1.getValueFromPrio()+ " PID: "+ p2.getpId().substring(0,5) +"p2 Prio val:"+ p2.getValueFromPrio());
                     return p1.compareTo(p2);
                 }
             });
-            System.out.println("tempProcsList --"+tempProcsList.toString());
+            //System.out.println("tempProcsList --"+ tempProcsList.toString());
 
             //int last=tempProcsList.size()-1;
             if (!tempProcsList.isEmpty()) {
                 aProcess = tempProcsList.get(0);
-                System.out.println("To remove: "+ aProcess.toString());
+                System.out.println("Process to remove: "+ aProcess.toString());
             }
         }
         return(aProcess);
     }
 
-    private Process searchProcess(String priority) {
-        return null;
-    }
-
-    public void KillProcess(String pid) {
+      public void KillProcess(String pid) {
         // Kill the process with the provided pid
 
         if (process_Queue.isEmpty()) {
@@ -235,7 +241,11 @@ public class TaskManager implements Serializable {
             } while (iter1.hasNext() && toRemoveProcess==null);
 
             if (toRemoveProcess!=null) {
+                System.out.println("Process found and removed: "+ toRemoveProcess.getpId());
                 process_Queue.remove(toRemoveProcess);
+
+            } else {
+                System.out.println("No process found with id: "+pid);
             }
         }
     }
